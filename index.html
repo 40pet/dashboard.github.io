@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responsive Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    .dark-mode {
+      background-color: #333;
+      color: #f0f0f0;
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .grid-item {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      text-align: center;
+    }
+    .dark-mode .grid-item {
+      background-color: #444;
+      color: #f0f0f0;
+    }
+    .grid-item h3 {
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      color: #4cd137;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      -webkit-appearance: none;
+      background: #ccc;
+      outline: none;
+      border-radius: 30px;
+      transition: background 0.3s;
+      cursor: pointer;
+    }
+    .toggle-switch:checked {
+      background: #4cd137;
+    }
+    .toggle-switch::before {
+      content: '';
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      top: 0;
+      left: 0;
+      background: white;
+      transition: transform 0.3s;
+    }
+    .toggle-switch:checked::before {
+      transform: translateX(30px);
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 1em;
+      color: #777;
+    }
+    .temperature {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+    .threshold-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .threshold {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .threshold button {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: #4cd137;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2em;
+      color: white;
+    }
+    .threshold input {
+      width: 50px;
+      text-align: center;
+      border: none;
+      font-size: 1em;
+      background: transparent;
+    }
+    .update-button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #4cd137;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    #chartContainer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+      max-width: 600px;
+    }
+    .menu-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #4cd137;
+      color: white;
+    }
+    .menu-bar button {
+      background-color: white;
+      color: #4cd137;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .menu-bar button:hover {
+      background-color: #ddd;
+    }
+    .dark-mode .menu-bar {
+      background-color: #333;
+      color: white;
+    }
+    .dark-mode .menu-bar button {
+      background-color: #444;
+      color: white;
+    }
+    .function-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .function-button {
+      padding: 10px 20px;
+      background-color: #4cd137;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .function-button:hover {
+      background-color: #45a049;
+    }
+    .dark-mode .function-button {
+      background-color: #333;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="menu-bar">
+    <h1>Dashboard</h1>
+    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </div>
+
+  <div class="grid-container">
+    <div class="grid-item">
+      <h3>WATER TEMPERATURE</h3>
+      <div class="temperature" id="water-temp">23.000</div>
+      <div class="threshold-group">
+        <div class="threshold">
+          <h4>UP</h4>
+          <button onclick="changeThreshold('upper', -1)">-</button>
+          <input type="text" id="upper-threshold" value="22" readonly>
+          <button onclick="changeThreshold('upper', 1)">+</button>
+        </div>
+        <div class="threshold">
+          <h4>LOW</h4>
+          <button onclick="changeThreshold('lower', -1)">-</button>
+          <input type="text" id="lower-threshold" value="22" readonly>
+          <button onclick="changeThreshold('lower', 1)">+</button>
+        </div>
+      </div>
+      <button class="update-button">Update Thresholds</button>
+    </div>
+    <div class="grid-item">
+      <h3>Room Temperature & Humidity</h3>
+      <div id="chartContainer">
+        <canvas id="tempHumidityChart"></canvas>
+      </div>
+    </div>
+    <div class="grid-item">
+      <h3>BULB</h3>
+      <input type="checkbox" id="bulb" class="toggle-switch" onclick="toggleStatus('bulb')">
+      <div id="bulb-status" class="status">OFF</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>FAN</h3>
+      <input type="checkbox" id="fan" class="toggle-switch" onclick="toggleStatus('fan')">
+      <div id="fan-status" class="status">OFF</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>Main Switch</h3>
+      <input type="checkbox" id="main-switch" class="toggle-switch" onclick="toggleStatus('main-switch')">
+      <div id="main-switch-status" class="status">ON</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>Switch 1</h3>
+      <input type="checkbox" id="switch-1" class="toggle-switch" onclick="toggleStatus('switch-1')">
+      <div id="switch-1-status" class="status">OFF</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>Switch 2</h3>
+      <input type="checkbox" id="switch-2" class="toggle-switch" onclick="toggleStatus('switch-2')">
+      <div id="switch-2-status" class="status">OFF</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>Switch 3</h3>
+      <input type="checkbox" id="switch-3" class="toggle-switch" onclick="toggleStatus('switch-3')">
+      <div id="switch-3-status" class="status">OFF</div>
+    </div>
+
+    <div class="grid-item">
+      <h3>Switch 4</h3>
+      <input type="checkbox" id="switch-4" class="toggle-switch" onclick="toggleStatus('switch-4')">
+      <div id="switch-4-status" class="status">OFF</div>
+    </div>
+
+
+  </div>
+
+  <div class="function-group">
+    <button class="function-button" onclick="emergencyShutdown()">Emergency Shutdown</button>
+    <button class="function-button" onclick="resetThresholds()">Reset Thresholds</button>
+    <button class="function-button" onclick="alert('Function not implemented yet')">Function 3</button>
+    <!-- Add more function buttons as needed -->
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+
+    function toggleStatus(id) {
+      const checkbox = document.getElementById(id);
+      const status = document.getElementById(`${id}-status`);
+      status.textContent = checkbox.checked ? 'ON' : 'OFF';
+    }
+
+    function changeThreshold(id, change) {
+      const input = document.getElementById(`${id}-threshold`);
+      let value = parseInt(input.value);
+      value += change;
+      if (value < 0) value = 0; // prevent negative values
+      input.value = value;
+    }
+
+    function emergencyShutdown() {
+      alert('Emergency shutdown initiated!');
+      // Add code here to perform emergency shutdown
+    }
+
+    function resetThresholds() {
+      document.getElementById('upper-threshold').value = 22;
+      document.getElementById('lower-threshold').value = 22;
+      alert('Thresholds reset to default values!');
+    }
+
+    const ctx = document.getElementById('tempHumidityChart').getContext('2d');
+    const tempHumidityChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00'],
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: [22, 23, 23.5, 24, 23, 22.5, 22],
+            borderColor: '#ff6347',
+            backgroundColor: 'rgba(255, 99, 71, 0.2)',
+            fill: true,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Humidity (%)',
+            data: [40, 42, 41, 39, 38, 37, 36],
+            borderColor: '#1e90ff',
+            backgroundColor: 'rgba(30, 144, 255, 0.2)',
+            fill: true,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        stacked: false,
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Temperature (°C)'
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Humidity (%)'
+            },
+            grid: {
+              drawOnChartArea: false
+            }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
